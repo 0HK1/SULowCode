@@ -1,0 +1,336 @@
+{
+  "name": "Inserção e Atualização de Leads",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Inicialização e Extração de dados \n",
+        "height": 244.17318784644803,
+        "width": 573.8020846998189
+      },
+      "id": "5f2d41b6-4e4a-4fa7-a902-125421f94993",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        871.7440334092452,
+        293.98926654740603
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "bc64b541-42be-453b-aed1-25622338ab8c",
+      "name": "Start WorkFlow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        920,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "C:\\\\Users\\\\davib\\\\Documents\\\\Dados.csv",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "id": "22730fbb-6e58-4737-8b03-b573ea39d385",
+      "name": "Leitura do Documento CSV",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "7bff6165-0f35-41f8-88bb-e1d5c420c455",
+      "name": "Extração de Dados do CSV",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bebd32f2-1ac1-470c-9e30-7d539c6a0d39",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        560
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "O7TGXJY7POIcM0rb",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "leads",
+        "updateKey": "=cpf",
+        "fields": "=cpf,name,firstname,lastname,phone,birthdate,age,released_value,created_at",
+        "upsert": true,
+        "options": {
+          "dateFields": "="
+        }
+      },
+      "id": "af18437b-e374-4d7b-8565-88b3462e339d",
+      "name": "MongoDB",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        340
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "PcGALWAE94fv5jpb",
+          "name": "MongoDB leads"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "getTimeBetweenDates",
+        "startDate": "={{ $json.birthdate }}",
+        "endDate": "={{ $json.created_at }}",
+        "units": [
+          "year"
+        ],
+        "outputFieldName": "age",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "id": "1b52933f-33cb-4143-974f-a5c9b6761ba6",
+      "name": "Obtém Idade",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        280
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  let age = item.json.age.years;\n  age = Math.floor(age);\n  item.json.age = age;\n}\n\nreturn $input.all();"
+      },
+      "id": "3b30336a-4416-433e-b52c-2ca68bd56c26",
+      "name": "Formatação de Idade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  separarNomes(item);\n  formatarNumerosTelefone(item);\n  criarDataRegistroUsuario(item);\n  formatarReleasedValue(item);\n  formatarCPF(item);\n}\n\nfunction separarNomes(item) {\n  const partes = item.json.name.split(\" \");\n  item.json.firstname = partes[0];\n  item.json.lastname = partes[partes.length - 1];\n}\nfunction formatarNumerosTelefone(item) {\n  let numeroJson = item.json.phone.replace(/\\D/g, \"\");\n  if (numeroJson.substring(0, 2) !== \"55\") {\n    numeroJson = \"55\"+numeroJson;\n  }\n  if (numeroJson.length > 4 && numeroJson.charAt(4) !== \"9\") {\n  numeroJson = numeroJson.slice(0, 4) + \"9\" + numeroJson.slice(4);\n  }\n  item.json.phone = numeroJson;\n}\nfunction formatarCPF(item){\n  var cpf = item.json.cpf.replace(/\\D/g, \"\");\n  \n  if(cpf.length>11){\n    cpf = cpf.slice(0,10);\n  }\n  if (cpf.length<11) {\n    const tamanhoCPF = cpf.length;\n    cpf = \"0\".repeat(11 - tamanhoCPF) + cpf;\n  }\n  item.json.cpf = cpf;\n}\nfunction criarDataRegistroUsuario(item) {\n  const dataAtual = new Date();\n  item.json.created_at = dataAtual;\n}\nfunction formatarReleasedValue(item) {\n  let value = item.json.released_value;\n  value = value.replace(\",\", \".\").replace(\" \", \"\");\n  value = parseFloat(value).toFixed(2);\n  item.json.released_value = parseFloat(value);\n}\n\nreturn $input.all();"
+      },
+      "id": "09a9d5ec-8095-407a-8e05-244aeac57fdd",
+      "name": "Refinamento de Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "003c7c48-4672-4e31-953e-520b7eca5b79",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Refinamento de Dados \n",
+        "height": 468.76362013077755,
+        "width": 497.56780695862113,
+        "color": 3
+      },
+      "id": "dd4c3bdd-dc97-4c34-bfbe-92588721ae59",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Insersão dos Dados no Database \n",
+        "height": 271.497973936114,
+        "width": 313.97461732299894,
+        "color": 5
+      },
+      "id": "89887836-9894-4fe9-ad95-48166d42da0d",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=A data de nascimento {{ $json.birthdate }} está em formato YYYY/MM/DD e é válida para uma pessoa viva? Responda com 'sim' ou 'não', e se não, explique o motivo de forma mais resumida possivel e qual é a data."
+      },
+      "id": "603534a6-b55b-446a-9b1a-530dbedc0a3c",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1580,
+        420
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start WorkFlow": {
+      "main": [
+        [
+          {
+            "node": "Leitura do Documento CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leitura do Documento CSV": {
+      "main": [
+        [
+          {
+            "node": "Extração de Dados do CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extração de Dados do CSV": {
+      "main": [
+        [
+          {
+            "node": "Refinamento de Dados",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtém Idade": {
+      "main": [
+        [
+          {
+            "node": "Formatação de Idade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatação de Idade": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refinamento de Dados": {
+      "main": [
+        [
+          {
+            "node": "Obtém Idade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8978ffc7-bb9c-4fdc-a1b1-b7ba4b78a03e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2be3296ffe4c1383a1c81d00528e6094cd27d98e5b8d9bf519d8400cb1626036"
+  },
+  "id": "oqglIAre5ge7JYOn",
+  "tags": []
+}

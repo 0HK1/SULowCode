@@ -1,0 +1,244 @@
+{
+  "name": "WebHock",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Inicialização do WebHock e formatação do Phone \n",
+        "height": 260.47160422771447,
+        "width": 435.3982809473732
+      },
+      "id": "fc1f24e7-9390-42a2-81b9-9047b31dfdf5",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Código para Lançar um Request via Post do WebHock\n**fetch('http://localhost:5678/webhook-test/retorna-dados-pelo-number', {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({phone:'1234567890'})\n})\n.then(response => response.json())\n.then(data => console.log(data))\n.catch(error => console.error('Erro:', error));**",
+        "height": 289.9280575539569,
+        "width": 536.1151079136689,
+        "color": 3
+      },
+      "id": "341a7cd3-097b-474c-94b5-17267f14955f",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Busca No Banco de Dados \n",
+        "height": 256.69064748201436,
+        "width": 221.87050359712248
+      },
+      "id": "f75f3acd-df6c-4ef3-bba8-a688fe9a930f",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1420,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Resposta Via Console\n\n",
+        "height": 459.13669064748177,
+        "width": 422.3021582733812
+      },
+      "id": "b84475e2-6472-4981-82e6-430da469715a",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9e13aefa-8c82-4dd2-b202-79f5e4ad4d7f",
+              "leftValue": "={{ $json.cpf }}",
+              "rightValue": "=null",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "063ee2eb-9aeb-474e-be2d-dfc39b7bac00",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1700,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "=leads",
+        "options": {},
+        "query": "={\"phone\": \"{{ $json.body.phone }}\"}"
+      },
+      "id": "7a900a5b-36aa-4ae1-ba7c-bce65c32e29d",
+      "name": "MongoDB",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        1480,
+        440
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "PcGALWAE94fv5jpb",
+          "name": "MongoDB leads"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  formatarNumerosTelefone(item);\n  \n}\nfunction formatarNumerosTelefone(item) {\n  let numeroJson = item.json.body.phone.replace(/\\D/g, \"\");\n  if (numeroJson.substring(0, 2) !== \"55\") {\n    numeroJson = \"55\"+numeroJson;\n  }\n  if (numeroJson.length > 4 && numeroJson.charAt(4) !== \"9\") {\n  numeroJson = numeroJson.slice(0, 4) + \"9\" + numeroJson.slice(4);\n  }\n  item.json.body.phone = numeroJson;\n}\n\nreturn $input.all();"
+      },
+      "id": "428e38b9-35f2-4438-8a52-c3acac4cf64f",
+      "name": "Formatação do Phone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  console.log(\"Usuário não Encontrado\")\n}\n\nreturn $input.all();"
+      },
+      "id": "e6112e20-0693-4709-b3c2-f90e6d4c5139",
+      "name": "Mensagem de Erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  console.log(\"Usuário Encontrado\")\n}\n\nreturn $input.all();"
+      },
+      "id": "c6b74392-3803-4551-a13c-1e408084f638",
+      "name": "Mensagem de Sucesso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        520
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "retorna-dados-pelo-number",
+        "options": {}
+      },
+      "id": "536530c9-e286-4cb3-95ba-771abb63590d",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        440
+      ],
+      "webhookId": "e0b0ad2e-0a67-4b54-a636-7ed10e379182"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Mensagem de Erro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem de Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatação do Phone": {
+      "main": [
+        [
+          {
+            "node": "MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Formatação do Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "596e2ca2-7732-4e2e-a9dc-55b74134bc1e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2be3296ffe4c1383a1c81d00528e6094cd27d98e5b8d9bf519d8400cb1626036"
+  },
+  "id": "wbv1xMkIgheK8U0m",
+  "tags": []
+}
